@@ -43,17 +43,42 @@ class Compress:
         self.fileByteArray = bytearray(iter(intList))
 
     def compressTree(self):
-        byteArray = bytearray()
-        byteArray += bytearray(iter([len(self.tree.treeList)]))
+        length = 0
         for i in self.tree.treeList:
-            byteArray += bytearray(iter([ord(i[0])]))
-            b = 1
-            for j in i[1]:
-                b *= 2
-                if j == '1':
-                    b += 1
-            byteArray += bytearray(iter([int((b - b % 256)/256), b % 256]))
+            if len(i[1]) > 15:
+                length += 5
+            else:
+                length += 3
+        byteArray = bytearray()
+        byteArray += bytearray(iter([int(length / 256), length % 256]))
+        for i in self.tree.treeList:
+            byteArray += self.byteArrayFromKeyCharPair(i)
         self.treeByteArray = byteArray
+
+    def byteArrayFromKeyCharPair(self, pair):
+        char = pair[0]
+        key = pair[1]
+
+        if len(key) > 14:
+            firstbit = '1'
+            buffer = '1'
+            while len(firstbit + buffer + key) < 32:
+                buffer = '0' + buffer
+        else:
+            firstbit = '0'
+            buffer = '1'
+            while len(firstbit + buffer + key) < 16:
+                buffer = '0' + buffer
+        byteKey = firstbit + buffer + key
+
+        byteArray = bytearray(iter([ord(char)]))
+        for i in range(0, len(byteKey), 8):
+            b = 0
+            for val, pos in zip(byteKey[i:i+8], range(7,-1,-1)):
+                if val == '1':
+                    b += 1 << pos
+            byteArray += bytearray(iter([b]))
+        return byteArray
 
     def writeToFile(self):
         with open(self.fileOriginal[:-4] + ".compressed", "wb") as f:
@@ -73,35 +98,39 @@ class Decompress:
                 byte = f.read(1)
             f.close()
         # Make tree list
+        treeLength = list[0]*256 + list[1]
         self.treeList = []
-        self.getTreeList(list[1:list[0]*3 + 1])
+        self.getTreeList(list[2: 2 + treeLength])
         # Decompress text
         self.text = ''
-        self.getText(list[list[0]*3 + 1:])
+        self.getText(list[2 + treeLength:])
         # Write to file
         self.writeToFile()
 
     def getTreeList(self, treeArray):
         treeList = []
-        for i in range(0, len(treeArray), 3):
+        nexti = 0
+        while(nexti + 1< len(treeArray)):
+            i = nexti
             char = chr(treeArray[i])
-            key = self.getKey(treeArray[i + 1], treeArray[i + 2])
+            if treeArray[i + 1] & (1<<7) > 0:
+                keylength = 4
+            else:
+                keylength = 2
+            nexti += keylength + 1
+            key = self.getKey(treeArray[i+1: i+1+keylength])
             treeList.append((char, key))
         self.treeList = treeList
 
-    def getKey(self, byte1, byte2):
+    def getKey(self, keycode):
         stringKey = ''
         start = 0
-        for j in range(8):
-            if start == 1:
-                stringKey += str(int((byte1 & (1 << (7-j))) > 0))
-            if byte1 & (1 << (7-j)):
-                start = 1
-        for j in range(8):
-            if start == 1:
-                stringKey += str(int((byte2 & (1 << (7-j))) > 0))
-            if byte2 & (1 << (7-j)):
-                start = 1
+        for i in keycode:
+            for j in range(8):
+                if start == 1:
+                    stringKey += str(int(i & (1 << (7-j)) > 0))
+                if (i & (1 << (7-j))) > 0:
+                    start = 1
         return stringKey
 
     def getText(self, textArray):
