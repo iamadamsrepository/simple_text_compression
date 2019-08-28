@@ -18,7 +18,7 @@ class Compress:
         self.writeToFile()
 
     def compressFile(self):
-        # First convert file into string of 0s and 1s using the tree
+        # First convert file into string of bits using the tree
         charString = ""
         f = open(self.fileOriginal, "r")
         for i in f.read():
@@ -56,7 +56,7 @@ class Compress:
         self.treeByteArray = byteArray
 
     def writeToFile(self):
-        with open(self.fileOriginal + ".compressed", "wb") as f:
+        with open(self.fileOriginal[:-4] + ".compressed", "wb") as f:
             f.write(self.treeByteArray)
             f.write(self.fileByteArray)
             f.close()
@@ -137,12 +137,15 @@ if __name__ == '__main__':
         printUsage()
 
     elif sys.argv[1] == 'c':
+        if sys.argv[2][-4:] != '.txt':
+            print('Compress .txt files only')
+            exit()
         print(f"Compressing {sys.argv[2]}")
         Compress(sys.argv[2])
         print("Done.")
 
     elif sys.argv[1] == 'd':
-        if sys.argv[2][-10:] != 'compressed':
+        if sys.argv[2][-11:] != '.compressed':
             print("Decompress .compressed files only")
             exit()
         print(f"Decompressing {sys.argv[2]}")
