@@ -133,14 +133,14 @@ def printUsage():
 
 
 if __name__ == '__main__':
-    print(sys.argv)
     if len(sys.argv) < 3:
         printUsage()
-        exit()
-    if sys.argv[1] == 'c':
+
+    elif sys.argv[1] == 'c':
         print(f"Compressing {sys.argv[2]}")
         Compress(sys.argv[2])
         print("Done.")
+
     elif sys.argv[1] == 'd':
         if sys.argv[2][-10:] != 'compressed':
             print("Decompress .compressed files only")
@@ -148,6 +148,7 @@ if __name__ == '__main__':
         print(f"Decompressing {sys.argv[2]}")
         Decompress(sys.argv[2])
         print("Done.")
+
     else:
         printUsage()
     exit()
